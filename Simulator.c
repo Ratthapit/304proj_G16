@@ -22,7 +22,7 @@ int main(int argc, char *argv[])
     stateType state;
     FILE *filePtr;
 
-    if (argc != 2) {//2ไฟล์ห้ามขาดห้ามเกิน
+    if (argc != 2) {
 	    printf("error: usage: %s <machine-code file>\n", argv[0]);
 	    exit(1);
     }
@@ -45,6 +45,7 @@ int main(int argc, char *argv[])
     }
 
     ///////////////////////////////////////////////////////////////////////////////
+  
     int i;
     for(i=0;i<NUMREGS;i++)  state.reg[i]=0;                 // Initialize ทุก registers ให้เป็น 0
     state.pc = 0;                                               // set program counter เป็น 0 ไว้ก่อน-->เอาไว้แสดงใน printState
@@ -54,30 +55,6 @@ int main(int argc, char *argv[])
         
         printState(&state);
 
-        /*
-        R-type instructions (add, nand)  0x0 0x1
-               Bits 24-22 opcode
-               Bits 21-19 reg A (rs)
-               Bits 18-16 res B (rt)
-               Bits 15-3 ไม่ใช้ (ควรตั้งไว้ที่ 0)
-               Bits 2-0  destReg (rd)
-
-        I-type instructions (lw, sw, beq)  0x2 0x3 0x4
-               Bits 24-22 opcode
-               Bits 21-19 reg A (rs)
-               Bits 18-16 reg B (rt)
-               Bits 15-0 offsetField (เลข16-bit และเป็น 2’s complement  โดยอยู่ในช่วง –32768 ถึง 32767)
-
-        J-Type instructions (jalr)      0x5
-               Bits 24-22 opcode
-               Bits 21-19 reg A (rs)
-               Bits 18-16 reg B (rd)
-               Bits 15-0 ไม่ใช้ (ควรตั้งไว้ที่ 0)
-
-        O-type instructions (halt, noop)    0x6 0x7
-               Bits 24-22 opcode
-               Bits 21-0 ไม่ใช้ (ควรตั้งไว้ที่ 0)
-        */ 
         int rs = (state.mem[i] >> 19) & 0x7;    //regA
         int rt = (state.mem[i] >> 16) & 0x7;    //regB
 
@@ -85,7 +62,7 @@ int main(int argc, char *argv[])
             int rd = (state.mem[i] >> 0) & 0x7; //destReg   
 
             if(opcodeInBinary == 000)       state.reg[rd] = state.reg[rs]+state.reg[rt];            // 000 regA + regB เก็บใน destReg
-            else if(opcodeInBinary == 001)  state.reg[rd] = !(state.reg[rs] & state.reg[rt]);       // 001 Nand regA with regB เก็บใน destReg
+            else if(opcodeInBinary == 001)  state.reg[rd] = ~(state.reg[rs] & state.reg[rt]);       // 001 Nand regA with regB เก็บใน destReg
         }
         else if(opcodeInBinary == 010 || opcodeInBinary == 011 ||opcodeInBinary == 100){
             int offset_16Bits = (state.mem[i] >> 0) & 0x10;
@@ -103,12 +80,13 @@ int main(int argc, char *argv[])
            if(rs==rt)   state.pc++;
            else         state.pc = state.reg[rs];
         }
-        else if(opcodeInBinary == 110){
-            state.pc++;
-            printf("machine halted\ntotal of %d instructions executed\nfinal state of machine:",i);
-            break;
-        }
         else if(opcodeInBinary == 111){ /*ปล่อยมันไป อย่างที่เป็น~~*/}
+        else if(opcodeInBinary == 110){
+            printf("machine halted\ntotal of %d instructions executed\nfinal state of machine:",i);
+            state.pc++;
+            printState(&state);
+            return;
+        }
 
         state.pc++; //จบรอบ นับค่าเพิ่ม
     }
